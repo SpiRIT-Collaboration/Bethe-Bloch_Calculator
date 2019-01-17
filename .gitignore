@@ -33,7 +33,6 @@ temp*/
 #figures
 figures/
 *.pdf
-!BetheBlochStudy.pdf
 *.png
 *.eps
 *.jpg
