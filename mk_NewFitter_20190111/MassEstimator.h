@@ -31,9 +31,9 @@ namespace MassEstimator
 	const Double_t A_H   = 1.00794;
 	const Double_t A_eff = 0.9*A_Ar + 0.1*(A_C+4.*A_H);     // effective atomic mass of P10
 	// I: mean excitation energy [eV], values are obtained from Atomic Data and Nuclear Dta Tables 30, 261 (1984)
-	const Double_t I_Ar    = 188.0*1.e-6;
-	const Double_t I_CH4   = 41.7*1.e-6;
-	const Double_t lnI_eff = (0.9*Z_Ar*TMath::Log(I_Ar) + 0.1*(Z_C+Z_H*4.)*TMath::Log(I_CH4))/Z_eff;
+	const Double_t I_Ar    = 188.0;
+	const Double_t I_CH4   = 41.7;
+	const Double_t lnI_eff = (0.9*Z_Ar*TMath::Log(I_Ar*1.e-6) + 0.1*(Z_C+Z_H*4.)*TMath::Log(I_CH4*1.e-6))/Z_eff;
 
 	// density correction
 	Double_t delta_Ar(Double_t x);
@@ -150,7 +150,7 @@ Double_t MassEstimator::BBMassFinderEq(Double_t *x, Double_t *p)
 
 Double_t MassEstimator::CalcBBMass(Double_t* p)
 {
-	TF1 bbfit("bbfit",BBMassFinderEq,-500.,5000.,5,1);    // name, function, xmin, xmax, n-parameter, dimension
+	TF1 bbfit("bbfit",BBMassFinderEq,-500.,5000.,5,1);      // name, function, xmin, xmax, n-parameter, dimension
 	bbfit.SetParameters(p);
 	ROOT::Math::RootFinder finder(ROOT::Math::RootFinder::kBRENT);
 	ROOT::Math::WrappedTF1 wf(bbfit);
@@ -175,7 +175,7 @@ Double_t MassEstimator::fLVdedx(Double_t z, Double_t m, Double_t *x, Double_t *p
 
 	// detector depth is parameter
 	Double_t t    = rho_P10*p[2];
-	Double_t xi   = K/2.*Z_eff/A_eff*z*z/b2*t; 
+	Double_t xi   = K/2.*Z_eff/A_eff*z*z/b2*t;
 	// Landau-Vavilov most probable energy loss [MeV]
 	Double_t delta_p = xi*(TMath::Log(2.*kme*b2*g2)+TMath::Log(xi)-2.*lnI_eff+0.2-b2-delta_eff);
 
@@ -197,16 +197,16 @@ Double_t MassEstimator::LVMassFinderEq(Double_t *x, Double_t *p)
 
 	// detector depth is parameter
 	Double_t t    = rho_P10*p[2];
-	Double_t xi   = K/2.*Z_eff/A_eff*z*z/b2*t; 
+	Double_t xi   = K/2.*Z_eff/A_eff*z*z/b2*t;
 	// Landau-Vavilov most probable energy loss [MeV]
 	Double_t delta_p = xi*(TMath::Log(2.*kme*b2*g2)+TMath::Log(xi)-2.*lnI_eff+0.2-b2-delta_eff);
 
-	return p[6] - (p[0]*delta_p/p[2]+p[1]);
+	return p[5] - (p[0]*delta_p/p[2]+p[1]);
 }
 
 Double_t MassEstimator::CalcLVMass(Double_t* p)
 {
-	TF1 lvfit("lvfit",LVMassFinderEq,-500.,5000.,6,1);    // name, function, xmin, xmax, n-parameter, dimension
+	TF1 lvfit("lvfit",LVMassFinderEq,-500.,5000.,6,1);      // name, function, xmin, xmax, n-parameter, dimension
 	lvfit.SetParameters(p);
 	ROOT::Math::RootFinder finder(ROOT::Math::RootFinder::kBRENT);
 	ROOT::Math::WrappedTF1 wf(lvfit);
