@@ -6,7 +6,7 @@ void makeGoodPID()
 {
 	auto chain = new TChain("cbmsim");
 	
-	for(Int_t runNo = 2900; runNo<2920; runNo++){
+	for(Int_t runNo = 2900; runNo<2910; runNo++){
 		auto splitNo = 0;
 		while(gSystem->IsFileInIncludePath(Form(pathReco+"run%d_s%d.reco."+recoVer+".root",runNo,splitNo))){
 			chain->Add(Form(pathReco+"run%d_s%d.reco."+recoVer+".root",runNo,splitNo));
@@ -34,7 +34,7 @@ void makeGoodPID()
 		auto v = (STVertex*) vertexArray->At(0);
 		auto pos = v->GetPos();
 		if(TMath::Abs(pos.Z()+13.3)>3.5) continue;
-		if(TMath::Abs(pos.X())>15||TMath::Abs(pos.Y()+260.06)>20) continue;
+		if(TMath::Abs(pos.X())>15||TMath::Abs(pos.Y()+226.)>20) continue;
 
 		auto nTrack = vaTrackArray->GetEntries();
 		for(auto j: ROOT::TSeqL(nTrack)){

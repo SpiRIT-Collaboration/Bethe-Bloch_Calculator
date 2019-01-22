@@ -77,9 +77,12 @@ namespace MassEstimator
 
 	Double_t BBMassFinderEq(Double_t *x, Double_t *p);
 	Double_t LVMassFinderEq(Double_t *x, Double_t *p);
+	
+	Double_t BBMassFinderDeriv(Double_t *x, Double_t *p, Double_t dx);
+	Double_t LVMassFinderDeriv(Double_t *x, Double_t *p, Double_t dx);
 
-	Double_t CalcBBMass(Double_t* p);
-	Double_t CalcLVMass(Double_t* p);
+	//Double_t CalcBBMass(Double_t* p);
+	//Double_t CalcLVMass(Double_t* p);
 
 }
 
@@ -132,22 +135,21 @@ Double_t MassEstimator::BBMassFinderEq(Double_t *x, Double_t *p)
 	// par[2] = z(charge), par[3] = rigidity magnitude, par[4] = measured dedx;
 	Double_t m    = x[0];
 	Double_t z    = p[2];
-	Double_t mom  = p[3]*z;
-	Double_t b2   = mom*mom/(mom*mom+m*m);
-	Double_t g2   = 1./(1.-b2);
-	Double_t g    = TMath::Sqrt(g2);
-	Double_t Wmax = 2.*kme*b2*g2/(1.+2.*g*kme/m+TMath::Power(kme/m,2.));
+	Double_t R    = p[3];
+	Double_t dedx_calc = fBBdedx(z,m,&R,p);
+	Double_t dedx_meas = p[4];
+	return dedx_meas - dedx_calc;
 
-	Double_t X     = TMath::Log10(TMath::Sqrt(b2*g2));
-	Double_t d_Ar  = delta_Ar(X);
-	Double_t d_CH4 = delta_CH4(X);
-	Double_t delta_eff = (0.9*Z_Ar*d_Ar+0.1*(Z_C+Z_H*4.)*d_CH4)/Z_eff;
-
-	Double_t dedx  = K*rho_P10*z*z*Z_eff/A_eff/b2*(0.5*TMath::Log(2.*kme*b2*g2*Wmax)-lnI_eff-b2-0.5*delta_eff);
-
-	return p[4] - p[0]*dedx-p[1];
 }
 
+Double_t MassEstimator::BBMassFinderDeriv(Double_t *x, Double_t *p, Double_t dx)
+{
+	Double_t x0 = x[0]-dx/2.;
+	Double_t x1 = x[0]+dx/2.;
+	return ( BBMassFinderEq(&x1,p) - BBMassFinderEq(&x0,p) )/dx;
+}
+
+/*
 Double_t MassEstimator::CalcBBMass(Double_t* p)
 {
 	TF1 bbfit("bbfit",BBMassFinderEq,-500.,5000.,5,1);      // name, function, xmin, xmax, n-parameter, dimension
@@ -158,7 +160,7 @@ Double_t MassEstimator::CalcBBMass(Double_t* p)
 	finder.Solve();
 	return finder.Root();
 }
-
+*/
 
 Double_t MassEstimator::fLVdedx(Double_t z, Double_t m, Double_t *x, Double_t *p)
 {
@@ -186,26 +188,22 @@ Double_t MassEstimator::LVMassFinderEq(Double_t *x, Double_t *p)
 {
 	Double_t m    = x[0];
 	Double_t z    = p[3];
-	Double_t mom  = p[4]*z;
-	Double_t b2   = mom*mom/(mom*mom+m*m);
-	Double_t g2   = 1./(1.-b2);
-
-	Double_t X     = TMath::Log10(TMath::Sqrt(b2*g2));
-	Double_t d_Ar  = delta_Ar(X);
-	Double_t d_CH4 = delta_CH4(X);
-	Double_t delta_eff = (0.9*Z_Ar*d_Ar+0.1*(Z_C+Z_H*4.)*d_CH4)/Z_eff;
-
-	// detector depth is parameter
-	Double_t t    = rho_P10*p[2];
-	Double_t xi   = K/2.*Z_eff/A_eff*z*z/b2*t;
-	// Landau-Vavilov most probable energy loss [MeV]
-	Double_t delta_p = xi*(TMath::Log(2.*kme*b2*g2)+TMath::Log(xi)-2.*lnI_eff+0.2-b2-delta_eff);
-
-	return p[5] - (p[0]*delta_p/p[2]+p[1]);
+	Double_t R    = p[4];
+	Double_t dedx_calc = fLVdedx(z,m,&R,p);
+	Double_t dedx_meas = p[5];
+	return dedx_meas - dedx_calc;
 }
 
+Double_t MassEstimator::LVMassFinderDeriv(Double_t *x, Double_t *p, Double_t dx)
+{
+	Double_t x0 = x[0]-dx/2.;
+	Double_t x1 = x[0]+dx/2.;
+	return ( LVMassFinderEq(&x1,p) - LVMassFinderEq(&x0,p) )/dx;
+}
+/*
 Double_t MassEstimator::CalcLVMass(Double_t* p)
 {
+
 	TF1 lvfit("lvfit",LVMassFinderEq,-500.,5000.,6,1);      // name, function, xmin, xmax, n-parameter, dimension
 	lvfit.SetParameters(p);
 	ROOT::Math::RootFinder finder(ROOT::Math::RootFinder::kBRENT);
@@ -214,4 +212,4 @@ Double_t MassEstimator::CalcLVMass(Double_t* p)
 	finder.Solve();
 	return finder.Root();
 }
-
+*/
