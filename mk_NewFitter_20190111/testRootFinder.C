@@ -4,7 +4,7 @@ using namespace MassEstimator;
 void testRootFinder()
 {
 	// parameters for the eq. function.
-	Double_t *p = new Double_t(6);
+	Double_t *p = new Double_t[6];
 	p[0] = 1.;
 	p[1] = 0.;
 	p[2] = 12.;
