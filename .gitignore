@@ -39,3 +39,4 @@ figures/
 *.jpeg
 
 !mk_NewFitter_20190111/LVBBFitter.root
+!mk_NewFitter_20190111/MassFitter.root
