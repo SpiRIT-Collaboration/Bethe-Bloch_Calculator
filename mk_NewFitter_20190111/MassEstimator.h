@@ -51,6 +51,12 @@ namespace MassEstimator
 	const Double_t k_CH4  = 3.6257;
 
 	const Double_t ln10   = TMath::Log(10);
+	
+	// Barkas correction
+	Double_t BarkasCor(Double_t E);
+	// Bloch correction
+	Double_t BlochCor(Double_t y);
+	const Double_t alpha = 1./137.;
 
 	Double_t fBBdedx(Double_t z, Double_t m, Double_t *x, Double_t *p);
 	Double_t fLVdedx(Double_t z, Double_t m, Double_t *x, Double_t *p);
@@ -104,6 +110,19 @@ Double_t MassEstimator::delta_CH4(Double_t x)
 	return d_CH4;
 }
 
+Double_t MassEstimator::BarkasCor(Double_t E)
+{
+	Double_t L_low = 0.001*E;
+	Double_t L_high = 1.5/TMath::Power(E,0.4)+45000/(Z_eff*TMath::Power(E,1.6));
+	return L_low*L_high/(L_low+L_high);
+}
+
+Double_t MassEstimator::BlochCor(Double_t y)
+{ // y = z alpha/beta;
+	return -y*y*(1.202-y*y*(1.042-0.855*y*y+0.343*y*y*y*y));
+}
+
+
 Double_t MassEstimator::fBBdedx(Double_t z, Double_t m, Double_t *x, Double_t *p)
 {
 	// variable: x[0] = rigidity magnitude
@@ -111,6 +130,7 @@ Double_t MassEstimator::fBBdedx(Double_t z, Double_t m, Double_t *x, Double_t *p
 	// par[0] = normalization [MeV/cm]->[ADC/mm], par[1] = offset
 	Double_t mom  = x[0]*z;
 	Double_t b2   = mom*mom/(mom*mom+m*m);
+	Double_t beta = TMath::Sqrt(b2);
 	Double_t g2   = 1./(1.-b2);
 	Double_t g    = TMath::Sqrt(g2);
 	Double_t Wmax = 2.*kme*b2*g2/(1.+2.*g*kme/m+TMath::Power(kme/m,2.));
@@ -119,9 +139,14 @@ Double_t MassEstimator::fBBdedx(Double_t z, Double_t m, Double_t *x, Double_t *p
 	Double_t d_Ar  = delta_Ar(X);
 	Double_t d_CH4 = delta_CH4(X);
 	Double_t delta_eff = (0.9*Z_Ar*d_Ar+0.1*(Z_C+Z_H*4.)*d_CH4)/Z_eff;
+	
+	Double_t E  = 1000.*(TMath::Sqrt(mom*mom+m*m)-m)/(m/amu);
+	Double_t L1 = BarkasCor(E);
+	Double_t y  = z*alpha/beta;
+	Double_t L2 = BlochCor(y);
 
 	// Bethe-Bloch dedx [MeV/cm]
-	Double_t dedx  = K*rho_P10*z*z*Z_eff/A_eff/b2*(0.5*TMath::Log(2.*kme*b2*g2*Wmax)-lnI_eff-b2-0.5*delta_eff);
+	Double_t dedx  = K*rho_P10*z*z*Z_eff/A_eff/b2*(0.5*TMath::Log(2.*kme*b2*g2*Wmax)-lnI_eff-b2-0.5*delta_eff+L1+L2);
 
 	return p[0]*dedx+p[1];
 }
