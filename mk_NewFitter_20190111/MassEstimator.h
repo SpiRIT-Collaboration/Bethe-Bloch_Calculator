@@ -51,7 +51,7 @@ namespace MassEstimator
 	const Double_t k_CH4  = 3.6257;
 
 	const Double_t ln10   = TMath::Log(10);
-	
+
 	// Barkas correction
 	Double_t BarkasCor(Double_t E);
 	// Bloch correction
@@ -86,9 +86,6 @@ namespace MassEstimator
 	
 	Double_t BBMassFinderDeriv(Double_t *x, Double_t *p, Double_t dx);
 	Double_t LVMassFinderDeriv(Double_t *x, Double_t *p, Double_t dx);
-
-	//Double_t CalcBBMass(Double_t* p);
-	//Double_t CalcLVMass(Double_t* p);
 
 }
 
@@ -127,22 +124,24 @@ Double_t MassEstimator::fBBdedx(Double_t z, Double_t m, Double_t *x, Double_t *p
 {
 	// variable: x[0] = rigidity magnitude
 	// parameters:
-	// par[0] = normalization [MeV/cm]->[ADC/mm], par[1] = offset
-	Double_t mom  = x[0]*z;
-	Double_t b2   = mom*mom/(mom*mom+m*m);
-	Double_t beta = TMath::Sqrt(b2);
-	Double_t g2   = 1./(1.-b2);
-	Double_t g    = TMath::Sqrt(g2);
-	Double_t Wmax = 2.*kme*b2*g2/(1.+2.*g*kme/m+TMath::Power(kme/m,2.));
+	// 0,1 for dEdx, par[0] = normalization [MeV/cm]->[ADC/mm], par[1] = offset
+	// 2,3 for mom,  par[2] = norm, par[3] = offset
+	x[0] = p[2]*x[0]+p[3];
+	Double_t mom   = x[0]*z;
+	Double_t b2    = mom*mom/(mom*mom+m*m);
+	Double_t beta  = TMath::Sqrt(b2);
+	Double_t g2    = 1./(1.-b2);
+	Double_t gamma = TMath::Sqrt(g2);
+	Double_t Wmax  = 2.*kme*b2*g2/(1.+2.*gamma*kme/m+TMath::Power(kme/m,2.));
 
 	Double_t X     = TMath::Log10(TMath::Sqrt(b2*g2));
 	Double_t d_Ar  = delta_Ar(X);
 	Double_t d_CH4 = delta_CH4(X);
 	Double_t delta_eff = (0.9*Z_Ar*d_Ar+0.1*(Z_C+Z_H*4.)*d_CH4)/Z_eff;
-	
-	Double_t E  = 1000.*(TMath::Sqrt(mom*mom+m*m)-m)/(m/amu);
+
+	Double_t E = 1000.*(TMath::Sqrt(mom*mom+m*m)-m)/(m/amu);
 	Double_t L1 = BarkasCor(E);
-	Double_t y  = z*alpha/beta;
+	Double_t y = z*alpha/beta;
 	Double_t L2 = BlochCor(y);
 
 	// Bethe-Bloch dedx [MeV/cm]
@@ -156,15 +155,14 @@ Double_t MassEstimator::BBMassFinderEq(Double_t *x, Double_t *p)
 	// f(x)=0 equation for root-finder
 	// in this case, dedx_measured - dedx_calculated = 0 where 1d-variable is mass
 	// parameters:
-	// par[0],par[1] same as fBBdedx
-	// par[2] = z(charge), par[3] = rigidity magnitude, par[4] = measured dedx;
+	// 0-3 same as fBBdedx
+	// par[4] = z(charge), par[5] = rigidity magnitude, par[6] = measured dedx;
 	Double_t m    = x[0];
-	Double_t z    = p[2];
-	Double_t R    = p[3];
+	Double_t z    = p[4];
+	Double_t R    = p[5];
 	Double_t dedx_calc = fBBdedx(z,m,&R,p);
-	Double_t dedx_meas = p[4];
+	Double_t dedx_meas = p[6];
 	return dedx_meas - dedx_calc;
-
 }
 
 Double_t MassEstimator::BBMassFinderDeriv(Double_t *x, Double_t *p, Double_t dx)
@@ -174,23 +172,10 @@ Double_t MassEstimator::BBMassFinderDeriv(Double_t *x, Double_t *p, Double_t dx)
 	return ( BBMassFinderEq(&x1,p) - BBMassFinderEq(&x0,p) )/dx;
 }
 
-/*
-Double_t MassEstimator::CalcBBMass(Double_t* p)
-{
-	TF1 bbfit("bbfit",BBMassFinderEq,-500.,5000.,5,1);      // name, function, xmin, xmax, n-parameter, dimension
-	bbfit.SetParameters(p);
-	ROOT::Math::RootFinder finder(ROOT::Math::RootFinder::kBRENT);
-	ROOT::Math::WrappedTF1 wf(bbfit);
-	finder.SetFunction(wf,0.1,10000.);
-	finder.Solve();
-	return finder.Root();
-}
-*/
 
 Double_t MassEstimator::fLVdedx(Double_t z, Double_t m, Double_t *x, Double_t *p)
 {
-	// parameters:
-	// par[0] = normalization, par[1] = offset, par[2] = detector thickness in [cm].
+	x[0] = p[3]*x[0]+p[4];
 	Double_t mom  = x[0]*z;
 	Double_t b2   = mom*mom/(mom*mom+m*m);
 	Double_t g2   = 1./(1.-b2);
@@ -212,11 +197,12 @@ Double_t MassEstimator::fLVdedx(Double_t z, Double_t m, Double_t *x, Double_t *p
 Double_t MassEstimator::LVMassFinderEq(Double_t *x, Double_t *p)
 {
 	Double_t m    = x[0];
-	Double_t z    = p[3];
-	Double_t R    = p[4];
+	Double_t z    = p[5];
+	Double_t R    = p[6];
 	Double_t dedx_calc = fLVdedx(z,m,&R,p);
-	Double_t dedx_meas = p[5];
+	Double_t dedx_meas = p[7];
 	return dedx_meas - dedx_calc;
+
 }
 
 Double_t MassEstimator::LVMassFinderDeriv(Double_t *x, Double_t *p, Double_t dx)
@@ -225,16 +211,3 @@ Double_t MassEstimator::LVMassFinderDeriv(Double_t *x, Double_t *p, Double_t dx)
 	Double_t x1 = x[0]+dx/2.;
 	return ( LVMassFinderEq(&x1,p) - LVMassFinderEq(&x0,p) )/dx;
 }
-/*
-Double_t MassEstimator::CalcLVMass(Double_t* p)
-{
-
-	TF1 lvfit("lvfit",LVMassFinderEq,-500.,5000.,6,1);      // name, function, xmin, xmax, n-parameter, dimension
-	lvfit.SetParameters(p);
-	ROOT::Math::RootFinder finder(ROOT::Math::RootFinder::kBRENT);
-	ROOT::Math::WrappedTF1 wf(lvfit);
-	finder.SetFunction(wf,0.1,10000.);
-	finder.Solve();
-	return finder.Root();
-}
-*/
